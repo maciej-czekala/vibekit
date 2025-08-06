@@ -40,6 +40,13 @@ export function Footer() {
           className="hover:underline"
         >
           GitHub
+        </a>{" "}
+        •{" "}
+        <a
+          href="/attribution"
+          className="hover:underline"
+        >
+          Attribution
         </a>
       </p>
     </footer>

@@ -100,7 +100,7 @@ export function useUrlAvailability({
         timeoutRef.current = null;
       }
     };
-  }, [url, enabled, retryInterval, timeout]);
+  }, [url, enabled, retryInterval, timeout, checkUrlWithIframe]);
 
   return {
     isUrlReady,
