@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, Eye, EyeOff, Edit3, Save, X, Key, Check } fr
 import { useAgentConfigs } from "@/hooks/use-config";
 import { AI_AGENTS_CONFIG, AgentId } from "@/lib/config-storage";
 
+
 interface AgentUIState {
   isEditing: boolean;
   showValue: boolean;
@@ -18,10 +19,15 @@ interface AgentUIState {
 
 type AgentUIStates = Record<AgentId, AgentUIState>;
 
-export function ApiKeysSection() {
+interface ApiKeysSectionProps {
+  onExpand?: () => void;
+}
+
+export function ApiKeysSection({ onExpand }: ApiKeysSectionProps) {
   const { mounted, saveAgentConfig, getAgentConfigInfo } = useAgentConfigs();
   const [isOpen, setIsOpen] = useState(false);
   const [uiStates, setUiStates] = useState<AgentUIStates>({} as AgentUIStates);
+  const [savedAgentId, setSavedAgentId] = useState<string | null>(null);
 
   // Initialize UI states
   React.useEffect(() => {
@@ -74,6 +80,15 @@ export function ApiKeysSection() {
             inputValue: "",
           }
         }));
+        
+        // Show success animation
+        setSavedAgentId(agentId);
+        setTimeout(() => setSavedAgentId(null), 2000);
+        
+        // Dispatch event to notify other components
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('vibekit-config-changed'));
+        }
       }
     }
   };
@@ -110,6 +125,20 @@ export function ApiKeysSection() {
     }));
   };
 
+  const expandSection = useCallback(() => {
+    if (!isOpen) {
+      setIsOpen(true);
+      onExpand?.();
+    }
+  }, [isOpen, onExpand]);
+
+  // Expose expand function via useEffect for external access
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).expandApiKeysSection = expandSection;
+    }
+  }, [isOpen, expandSection]);
+
   if (!mounted) {
     return (
       <div className="bg-card rounded-lg border p-6">
@@ -122,29 +151,30 @@ export function ApiKeysSection() {
   }
 
   return (
-    <div className="bg-card rounded-lg border">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger className="w-full p-6 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Key className="h-5 w-5 text-muted-foreground" />
-              <div className="text-left">
-                <h2 className="text-xl font-semibold">AI API Keys</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Configure API keys for AI agents. Keys are stored locally in your browser.
-                </p>
+    <div id="api-keys-section">
+      <div className="bg-card rounded-lg border">
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleTrigger className="w-full p-6 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Key className="h-5 w-5 text-muted-foreground" />
+                <div className="text-left">
+                  <h2 className="text-xl font-semibold">AI API Keys</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure API keys for AI agents. Keys are stored locally in your browser.
+                  </p>
+                </div>
               </div>
+              {isOpen ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              )}
             </div>
-            {isOpen ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <div className="px-6 pb-6 space-y-6">
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <div className="px-6 pb-6 space-y-6">
         {Object.entries(AI_AGENTS_CONFIG).map(([agentId, agent], index) => {
           const configInfo = getAgentConfigInfo();
           const info = configInfo[agentId as AgentId];
@@ -153,7 +183,9 @@ export function ApiKeysSection() {
           if (!info || !uiState) return null;
 
           return (
-            <div key={agentId}>
+            <div key={agentId} className={`transition-all duration-300 ${
+              savedAgentId === agentId ? 'bg-green-50 border border-green-200 rounded-lg p-4' : ''
+            }`}>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -210,33 +242,46 @@ export function ApiKeysSection() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
                       {info.isSet ? (
-                        <div className="flex-1 flex items-center gap-2">
-                          <div className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
-                            {uiState.showValue ? info.value : maskApiKey(info.value || "")}
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <div className="px-3 py-2 bg-muted rounded-md text-sm font-mono break-all min-h-[40px] flex items-center">
+                              {uiState.showValue ? info.value : maskApiKey(info.value || "")}
+                            </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleShowValue(agentId as AgentId)}
-                          >
-                            {uiState.showValue ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(agentId as AgentId)}
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleShowValue(agentId as AgentId)}
+                              className="flex items-center gap-1"
+                            >
+                              {uiState.showValue ? (
+                                <>
+                                  <EyeOff className="h-4 w-4" />
+                                  Hide
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4" />
+                                  Show
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(agentId as AgentId)}
+                              className="flex items-center gap-1"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                              Edit
+                            </Button>
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex-1 flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                           <div className="text-sm text-muted-foreground">
                             Not configured - will use value from .env.local
                           </div>
@@ -244,6 +289,7 @@ export function ApiKeysSection() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(agentId as AgentId)}
+                            className="flex items-center gap-1"
                           >
                             <Edit3 className="h-4 w-4" />
                             Add Key
@@ -261,6 +307,7 @@ export function ApiKeysSection() {
             </div>
           );
         })}
+            </div>
 
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <p className="text-xs text-muted-foreground">
@@ -268,9 +315,9 @@ export function ApiKeysSection() {
                 If no key is configured here, VibeKit will use the corresponding environment variable from .env.local.
               </p>
             </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
   );
 }

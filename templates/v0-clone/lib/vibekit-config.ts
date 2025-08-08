@@ -91,6 +91,7 @@ export function getVibeKitConfig() {
     // Environment configurations
     environment: {
       githubToken: environmentConfigs.github_token,
+      githubOAuthClientId: environmentConfigs.auth_github_id,
       e2bApiKey: environmentConfigs.e2b_api_key,
       daytonaApiKey: environmentConfigs.daytona_api_key,
       northflankApiKey: environmentConfigs.northflank_api_key,
@@ -122,6 +123,7 @@ export function getGithubConfig() {
   const config = getVibeKitConfig();
   return {
     token: config.environment.githubToken,
+    oauthClientId: config.environment.githubOAuthClientId,
   };
 }
 
@@ -246,6 +248,7 @@ export function getConfigurationStatus() {
     },
     environment: {
       githubToken: { configured: !!environmentConfigs.github_token, source: configStorage.getConfigSource('github_token') },
+      githubOAuthClientId: { configured: !!environmentConfigs.auth_github_id, source: configStorage.getConfigSource('auth_github_id') },
       e2bApiKey: { configured: !!environmentConfigs.e2b_api_key, source: configStorage.getConfigSource('e2b_api_key') },
       daytonaApiKey: { configured: !!environmentConfigs.daytona_api_key, source: configStorage.getConfigSource('daytona_api_key') },
       northflankApiKey: { configured: !!environmentConfigs.northflank_api_key, source: configStorage.getConfigSource('northflank_api_key') },

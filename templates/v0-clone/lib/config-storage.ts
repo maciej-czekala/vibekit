@@ -56,6 +56,13 @@ export const ENVIRONMENT_CONFIG = {
     envKey: "GITHUB_TOKEN",
     storageKey: "vibekit_github_token",
   },
+  auth_github_id: {
+    id: "auth_github_id",
+    name: "GitHub OAuth Client ID",
+    description: "GitHub OAuth application client ID for authentication",
+    envKey: "AUTH_GITHUB_ID",
+    storageKey: "vibekit_auth_github_id",
+  },
   e2b_api_key: {
     id: "e2b_api_key",
     name: "E2B API Key",

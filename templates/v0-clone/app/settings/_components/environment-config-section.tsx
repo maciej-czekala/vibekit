@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +18,15 @@ interface EnvironmentUIState {
 
 type EnvironmentUIStates = Record<EnvironmentId, EnvironmentUIState>;
 
-export function EnvironmentConfigSection() {
+interface EnvironmentConfigSectionProps {
+  onExpand?: () => void;
+}
+
+export function EnvironmentConfigSection({ onExpand }: EnvironmentConfigSectionProps) {
   const { mounted, saveEnvironmentConfig, getEnvironmentConfigInfo } = useEnvironmentConfigs();
   const [isOpen, setIsOpen] = useState(false);
   const [uiStates, setUiStates] = useState<EnvironmentUIStates>({} as EnvironmentUIStates);
+  const [savedEnvId, setSavedEnvId] = useState<string | null>(null);
 
   // Initialize UI states
   React.useEffect(() => {
@@ -74,6 +79,15 @@ export function EnvironmentConfigSection() {
             inputValue: "",
           }
         }));
+        
+        // Show success animation
+        setSavedEnvId(envId);
+        setTimeout(() => setSavedEnvId(null), 2000);
+        
+        // Dispatch event to notify other components
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('vibekit-config-changed'));
+        }
       }
     }
   };
@@ -110,6 +124,20 @@ export function EnvironmentConfigSection() {
     }));
   };
 
+  const expandSection = useCallback(() => {
+    if (!isOpen) {
+      setIsOpen(true);
+      onExpand?.();
+    }
+  }, [isOpen, onExpand]);
+
+  // Expose expand function via useEffect for external access
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).expandEnvironmentConfigSection = expandSection;
+    }
+  }, [isOpen, expandSection]);
+
   if (!mounted) {
     return (
       <div className="bg-card rounded-lg border p-6">
@@ -122,7 +150,7 @@ export function EnvironmentConfigSection() {
   }
 
   return (
-    <div className="bg-card rounded-lg border">
+    <div id="environment-config-section" className="bg-card rounded-lg border">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger className="w-full p-6 hover:bg-muted/50 transition-colors">
           <div className="flex items-center justify-between">
@@ -152,9 +180,11 @@ export function EnvironmentConfigSection() {
               
               if (!info || !uiState) return null;
 
-              return (
-                <div key={envId}>
-                  <div className="space-y-3">
+                          return (
+              <div key={envId} className={`transition-all duration-300 ${
+                savedEnvId === envId ? 'bg-green-50 border border-green-200 rounded-lg p-4' : ''
+              }`}>
+                <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -207,33 +237,46 @@ export function EnvironmentConfigSection() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="space-y-2">
                           {info.isSet ? (
-                            <div className="flex-1 flex items-center gap-2">
-                              <div className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
-                                {uiState.showValue ? info.value : maskKey(info.value || "")}
+                            <div className="space-y-2">
+                              <div className="relative">
+                                <div className="px-3 py-2 bg-muted rounded-md text-sm font-mono break-all min-h-[40px] flex items-center">
+                                  {uiState.showValue ? info.value : maskKey(info.value || "")}
+                                </div>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => toggleShowValue(envId as EnvironmentId)}
-                              >
-                                {uiState.showValue ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(envId as EnvironmentId)}
-                              >
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => toggleShowValue(envId as EnvironmentId)}
+                                  className="flex items-center gap-1"
+                                >
+                                  {uiState.showValue ? (
+                                    <>
+                                      <EyeOff className="h-4 w-4" />
+                                      Hide
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-4 w-4" />
+                                      Show
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEdit(envId as EnvironmentId)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                  Edit
+                                </Button>
+                              </div>
                             </div>
                           ) : (
-                            <div className="flex-1 flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                               <div className="text-sm text-muted-foreground">
                                 Not configured - will use value from .env.local
                               </div>
@@ -241,6 +284,7 @@ export function EnvironmentConfigSection() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEdit(envId as EnvironmentId)}
+                                className="flex items-center gap-1"
                               >
                                 <Edit3 className="h-4 w-4" />
                                 Add Key

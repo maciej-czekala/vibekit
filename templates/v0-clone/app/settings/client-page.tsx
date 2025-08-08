@@ -18,8 +18,8 @@ export default function SettingsClientPage() {
         
         <div className="space-y-6">
           <ConfigurationStatusSection />
-          <ApiKeysSection />
-          <EnvironmentConfigSection />
+          <ApiKeysSection onExpand={() => {}} />
+          <EnvironmentConfigSection onExpand={() => {}} />
         </div>
       </div>
     </div>
