@@ -1,13 +1,13 @@
 # Vibe0 (v0-clone)
 
-A Next.js app template powered by VibeKit SDK, Inngest, Convex, and Anthropic Claude. This application enables collaborative AI-driven development with real-time updates, GitHub integration, and sandboxed code execution using Northflank.
+A Next.js app template powered by VibeKit SDK, Inngest, Convex, and Anthropic Claude. This application enables collaborative AI-driven development with real-time updates, GitHub integration, and sandboxed code execution using multiple providers (Northflank, E2B, Daytona).
 
 ## ✨ Features
 
-- 🤖 AI-powered code generation using Anthropic Claude
+- 🤖 AI-powered code generation using multiple agents (Claude, Codex, Gemini, Grok, OpenCode)
 - 🔄 Real-time task updates with Inngest
 - 🐙 GitHub integration for repository management
-- 🏗️ Sandboxed environment execution with Northflank
+- 🏗️ Sandboxed environment execution with multiple providers
 - 📦 State management with Convex
 - 🎨 Modern UI with Tailwind CSS and shadcn/ui
 - 🗃️ TypeScript-first, modular architecture
@@ -20,8 +20,8 @@ Before you begin, make sure you have:
 - **npm** or **yarn**
 - **Inngest CLI** (for local development)
 - **Convex account** (for state management)
-- **Anthropic API key**
-- **Northflank API key and project ID**
+- **AI Provider API keys** (Anthropic, OpenAI, Google, xAI, Groq)
+- **Sandbox Provider API keys** (Northflank, E2B, Daytona)
 - **GitHub OAuth app** (for GitHub integration)
 
 ## 📦 Installation
@@ -49,12 +49,26 @@ npx inngest-cli@latest
 Create a `.env.local` file in the root directory with the following variables:
 
 ```bash
-# Anthropic Claude API Key
+# AI Provider API Keys
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+XAI_API_KEY=your_xai_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 
-# Northflank Configuration
+# Sandbox Provider Configuration
+# Northflank
 NORTHFLANK_API_KEY=your_northflank_api_key_here
 NORTHFLANK_PROJECT_ID=your_northflank_project_id_here
+
+# E2B
+E2B_API_KEY=your_e2b_api_key_here
+
+# Daytona
+DAYTONA_API_KEY=your_daytona_api_key_here
+
+# GitHub Configuration
+GITHUB_TOKEN=your_github_token_here
 
 # Convex Configuration
 NEXT_PUBLIC_CONVEX_URL=your_convex_url_here
@@ -67,133 +81,113 @@ AUTH_GITHUB_SECRET=your_github_client_secret
 #### Getting API Keys:
 
 - **Anthropic API Key**: Get it from [Anthropic Console](https://console.anthropic.com/)
+- **OpenAI API Key**: Get it from [OpenAI Platform](https://platform.openai.com/)
+- **Google API Key**: Get it from [Google AI Studio](https://aistudio.google.com/)
+- **xAI API Key**: Get it from [xAI Console](https://console.x.ai/)
+- **Groq API Key**: Get it from [Groq Console](https://console.groq.com/)
 - **Northflank API Key/Project ID**: [Northflank Dashboard](https://northflank.com/)
+- **E2B API Key**: [E2B Dashboard](https://e2b.dev/)
+- **Daytona API Key**: [Daytona Dashboard](https://daytona.io/)
 - **Convex URL**: [Convex Console](https://dashboard.convex.dev/)
-- **GitHub OAuth**: Create a new OAuth app in your [GitHub Developer Settings](https://github.com/settings/developers)
 
-## 🛠️ Development
+## 🔧 Configuration
 
-### 1. Start the Inngest Dev Server
+### Agent Types
 
-In one terminal, start the Inngest development server:
+The template supports multiple AI agents:
 
-```bash
-npx inngest-cli@latest dev
-```
+- **Claude** (Anthropic) - Default agent for code generation
+- **Codex** (OpenAI) - Alternative code generation agent
+- **Gemini** (Google) - Google's AI model
+- **Grok** (xAI) - xAI's conversational AI
+- **OpenCode** (Groq) - Fast code generation with Groq
 
-This will start the Inngest development server on `http://localhost:8288`.
+### Sandbox Providers
 
-### 2. Start the Next.js Development Server
+The template supports multiple sandbox providers:
 
-In another terminal, start the Next.js application:
+- **Northflank** - Cloud-native development environments
+- **E2B** - Ephemeral development environments
+- **Daytona** - Container-based development environments
+
+### Switching Providers
+
+You can easily switch between different agents and sandbox providers by modifying the configuration in:
+
+- `lib/inngest.ts` - For background functions
+- `app/actions/vibekit.ts` - For direct API calls
+- `lib/vibekit-config.ts` - For configuration management
+
+## 🚀 Development
+
+### 1. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`.
-
-## 📋 Available Scripts
-
-- `npm run dev` - Start the development server
-- `npm run build` - Build the application for production
-- `npm start` - Start the production server
-- `npm run lint` - Run ESLint for code quality
-
-## 🏗️ Project Structure
-
-```
-├── app/                    # Next.js App Router
-│   ├── actions/            # Server actions
-│   ├── api/                # API routes
-│   └── session/            # Session pages
-├── components/             # Reusable UI components
-│   └── ui/                 # shadcn/ui components
-├── convex/                 # Convex schema and functions
-├── lib/                    # Utility libraries and configurations
-├── providers/              # React providers (auth, convex, theme)
-├── public/                 # Static assets
-```
-
-## 🔧 Configuration
-
-### Inngest Functions
-
-The application uses Inngest for background task processing. Main functions are defined in `lib/inngest.ts` and handle AI code generation, session management, and real-time updates.
-
-### VibeKit Integration
-
-The app integrates with VibeKit SDK for AI code generation, supporting:
-
-- Anthropic Claude as the AI model
-- Northflank for sandboxed environments
-- GitHub repository integration
-- Real-time streaming updates
-
-### Convex
-
-Convex is used for state management and real-time data sync. See the `convex/` directory for schema and server functions.
-
-## 🌐 Deployment
-
-### Environment Variables for Production
-
-Set all required environment variables in your production environment:
+### 2. Start Inngest Dev Server (in another terminal)
 
 ```bash
-AUTH_GITHUB_ID=
-AUTH_GITHUB_SECRET=
-NORTHFLANK_API_KEY=
-NORTHFLANK_PROJECT_ID=
-NEXT_PUBLIC_CONVEX_URL=
-ANTHROPIC_API_KEY=
+npm run dev:inngest
 ```
 
-### Deploy to Vercel
+### 3. Start Both Servers Together
 
-1. Connect your repository to Vercel
-2. Set the environment variables in the Vercel dashboard
-3. Deploy
+```bash
+npm run dev:full
+```
 
-### Inngest in Production
+## 📁 Project Structure
 
-For production, configure Inngest properly:
+```
+templates/v0-clone/
+├── app/                    # Next.js app directory
+│   ├── actions/           # Server actions
+│   ├── api/              # API routes
+│   └── (routes)/         # App routes
+├── components/            # React components
+├── convex/               # Convex database
+├── lib/                  # Utility libraries
+│   ├── inngest.ts       # Background functions
+│   ├── vibekit-config.ts # VibeKit configuration
+│   └── config-storage.ts # Configuration storage
+└── public/              # Static assets
+```
 
-1. Set up an Inngest account at [inngest.com](https://inngest.com)
-2. Configure your production Inngest endpoint
-3. Update your deployment to use the production Inngest configuration
+## 🔄 API Changes
+
+This template has been updated to use the latest VibeKit SDK (v0.0.59) with the new fluent API:
+
+### Old API (v0.0.39)
+```typescript
+const vibekit = new VibeKit(config);
+```
+
+### New API (v0.0.59)
+```typescript
+const vibekit = new VibeKit()
+  .withAgent({
+    type: "claude",
+    provider: "anthropic",
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    model: "claude-3-5-sonnet-20241022",
+  })
+  .withSandbox(sandboxProvider)
+  .withGithub({
+    token: process.env.GITHUB_TOKEN!,
+    repository: "your-org/your-repo",
+  });
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License.
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-1. **Inngest functions not working**: Make sure the Inngest CLI is running (`npx inngest-cli@latest dev`)
-2. **API key errors**: Verify all environment variables are set correctly
-3. **GitHub OAuth issues**: Check your GitHub OAuth app configuration and callback URLs
-4. **Northflank connection problems**: Ensure your Northflank API key and project ID are valid
-5. **Convex issues**: Make sure your Convex URL is correct and your account is active
-
-### Getting Help
-
-- Check the [Inngest Documentation](https://www.inngest.com/docs)
-- Visit [VibeKit Documentation](https://vibekit.dev/docs)
-- Review [Next.js Documentation](https://nextjs.org/docs)
-- See [Convex Documentation](https://docs.convex.dev/)
-- Explore [Anthropic API Docs](https://docs.anthropic.com/claude)
-- Visit [Northflank Docs](https://northflank.com/docs)
-
----
-
-Built with ❤️ using Next.js, VibeKit, Inngest, Convex, and Anthropic Claude

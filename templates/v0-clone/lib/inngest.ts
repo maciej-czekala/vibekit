@@ -1,6 +1,9 @@
 import { Inngest } from "inngest";
 import { realtimeMiddleware, channel, topic } from "@inngest/realtime";
-import { VibeKit, VibeKitConfig } from "@vibe-kit/sdk";
+import { VibeKit } from "@vibe-kit/sdk";
+import { createNorthflankProvider } from "@vibe-kit/northflank";
+import { createE2BProvider } from "@vibe-kit/e2b";
+import { createDaytonaProvider } from "@vibe-kit/daytona";
 import { fetchMutation } from "convex/nextjs";
 
 import { api } from "@/convex/_generated/api";
@@ -9,6 +12,7 @@ import { generateSessionTitle } from "@/app/actions/session";
 import { createRepo } from "@/app/actions/github";
 import { Template } from "@/config";
 import { Id } from "@/convex/_generated/dataModel";
+import { configStorage } from "@/lib/config-storage";
 
 let app: Inngest | undefined;
 // Create a client to send and receive events
@@ -16,6 +20,106 @@ export const inngest = new Inngest({
   id: "vibe0",
   middleware: [realtimeMiddleware()],
 });
+
+// Helper function to create VibeKit instance with new fluent API
+function createVibeKitInstance(
+  agentType: "claude" | "codex" | "opencode" | "gemini" | "grok" = "claude",
+  sandboxProvider: "northflank" | "e2b" | "daytona" = "northflank",
+  repository?: string,
+  template?: Template
+) {
+  // Get API keys from config storage with environment fallback
+  const agentApiKey = configStorage.getConfig(agentType) || 
+    (agentType === "claude" 
+      ? process.env.ANTHROPIC_API_KEY!
+      : agentType === "codex" 
+      ? process.env.OPENAI_API_KEY!
+      : agentType === "gemini"
+      ? process.env.GOOGLE_API_KEY!
+      : agentType === "grok"
+      ? process.env.XAI_API_KEY!
+      : process.env.GROQ_API_KEY!);
+
+  const agentProvider = agentType === "claude" 
+    ? "anthropic" 
+    : agentType === "codex" 
+    ? "openai"
+    : agentType === "gemini"
+    ? "google"
+    : agentType === "grok"
+    ? "xai"
+    : "groq";
+
+  const agentModel = agentType === "claude" 
+    ? "claude-3-5-sonnet-20241022"
+    : agentType === "codex"
+    ? "gpt-4o"
+    : agentType === "gemini"
+    ? "gemini-1.5-pro"
+    : agentType === "grok"
+    ? "grok-beta"
+    : "llama-3.1-70b-versatile";
+
+  // Create sandbox provider with config storage fallback
+  let sandboxProviderInstance;
+  switch (sandboxProvider) {
+    case "northflank":
+      const northflankApiKey = configStorage.getConfig('northflank_api_key') || process.env.NORTHFLANK_API_KEY!;
+      const northflankProjectId = configStorage.getConfig('northflank_project_id') || process.env.NORTHFLANK_PROJECT_ID!;
+      sandboxProviderInstance = createNorthflankProvider({
+        apiKey: northflankApiKey,
+        projectId: northflankProjectId,
+        image: template?.image || "superagentai/vibekit-claude:1.0",
+      });
+      break;
+    case "e2b":
+      const e2bApiKey = configStorage.getConfig('e2b_api_key') || process.env.E2B_API_KEY!;
+      sandboxProviderInstance = createE2BProvider({
+        apiKey: e2bApiKey,
+        templateId: "vibekit-claude",
+      });
+      break;
+    case "daytona":
+      const daytonaApiKey = configStorage.getConfig('daytona_api_key') || process.env.DAYTONA_API_KEY!;
+      sandboxProviderInstance = createDaytonaProvider({
+        apiKey: daytonaApiKey,
+        image: template?.image || "superagentai/vibekit-claude:1.0",
+      });
+      break;
+    default:
+      throw new Error(`Unsupported sandbox provider: ${sandboxProvider}`);
+  }
+
+  // Create VibeKit instance with fluent API
+  const vibeKit = new VibeKit()
+    .withAgent({
+      type: agentType,
+      provider: agentProvider,
+      apiKey: agentApiKey,
+      model: agentModel,
+    })
+    .withSandbox(sandboxProviderInstance);
+
+  // Add GitHub configuration if repository is provided
+  if (repository) {
+    const githubToken = configStorage.getConfig('github_token') || process.env.GITHUB_TOKEN!;
+    vibeKit.withGithub({
+      token: githubToken,
+      repository: repository,
+    });
+  }
+
+  // Add working directory and secrets if template is provided
+  if (template?.workingDirectory) {
+    vibeKit.withWorkingDirectory(template.workingDirectory);
+  }
+
+  if (template?.secrets) {
+    vibeKit.withSecrets(template.secrets);
+  }
+
+  return vibeKit;
+}
 
 export const sessionChannel = channel("sessions")
   .addTopic(
@@ -39,10 +143,13 @@ export const sessionChannel = channel("sessions")
   );
 
 export const getInngestApp = () => {
-  return (app ??= new Inngest({
-    id: typeof window !== "undefined" ? "client" : "server",
-    middleware: [realtimeMiddleware()],
-  }));
+  if (!app) {
+    app = new Inngest({
+      id: "vibe0",
+      middleware: [realtimeMiddleware()],
+    });
+  }
+  return app;
 };
 
 export const runAgent = inngest.createFunction(
@@ -50,35 +157,40 @@ export const runAgent = inngest.createFunction(
   { event: "vibe0/run.agent" },
   async ({ event, step }) => {
     const {
-      sessionId,
+      sessionId: _sessionId,
       id,
       message,
       template,
+      repository,
+      token: _token,
     }: {
       sessionId: string;
-      id: Id<"sessions">;
+      id: string;
       message: string;
-      template: Template;
+      template?: Template;
+      repository?: string;
+      token: string;
     } = event.data;
 
-    const config: VibeKitConfig = {
+    const config = {
       agent: {
-        type: "claude",
-        model: {
-          apiKey: process.env.ANTHROPIC_API_KEY!,
-        },
+        type: "claude" as const,
+        provider: "anthropic" as const,
+        apiKey: configStorage.getConfig('claude') || process.env.ANTHROPIC_API_KEY!,
+        model: "claude-3-5-sonnet-20241022",
       },
       environment: {
         northflank: {
-          apiKey: process.env.NORTHFLANK_API_KEY!,
-          projectId: process.env.NORTHFLANK_PROJECT_ID!,
+          apiKey: configStorage.getConfig('northflank_api_key') || process.env.NORTHFLANK_API_KEY!,
+          projectId: configStorage.getConfig('northflank_project_id') || process.env.NORTHFLANK_PROJECT_ID!,
+          image: template?.image,
         },
       },
-      sessionId,
+      secrets: template?.secrets,
     };
 
     const result = await step.run("generate code", async () => {
-      const vibekit = new VibeKit(config);
+      const vibekit = createVibeKitInstance("claude", "northflank", repository, template);
 
       await fetchMutation(api.sessions.update, {
         id,
@@ -96,123 +208,15 @@ export const runAgent = inngest.createFunction(
       const response = await vibekit.generateCode({
         prompt: prompt,
         mode: "code",
-        callbacks: {
-          async onUpdate(message) {
-            const data = JSON.parse(message);
-
-            if (data.type === "user") {
-              await fetchMutation(api.sessions.update, {
-                id,
-                status: "CUSTOM",
-                statusMessage: data.message.content[0].content,
-              });
-            }
-
-            if (data.type === "assistant") {
-              await fetchMutation(api.sessions.update, {
-                id,
-                status: "CUSTOM",
-                statusMessage: "Working on task",
-              });
-
-              switch (data.message.content[0].type) {
-                case "text":
-                  await fetchMutation(api.messages.add, {
-                    sessionId: id,
-                    content: data.message.content[0].text,
-                    role: "assistant",
-                  });
-                  break;
-                case "tool_use":
-                  const toolName = data.message.content[0].name;
-
-                  switch (toolName) {
-                    case "TodoWrite":
-                      await fetchMutation(api.messages.add, {
-                        sessionId: id,
-                        role: "assistant",
-                        content: "",
-                        todos: data.message.content[0].input.todos,
-                      });
-                      break;
-                    case "Write":
-                      await fetchMutation(api.messages.add, {
-                        sessionId: id,
-                        role: "assistant",
-                        content: "",
-                        edits: {
-                          filePath: data.message.content[0].input.file_path,
-                          oldString: "",
-                          newString: data.message.content[0].input.content,
-                        },
-                      });
-                      break;
-                    case "Edit":
-                      await fetchMutation(api.messages.add, {
-                        sessionId: id,
-                        role: "assistant",
-                        content: "",
-                        edits: {
-                          filePath: data.message.content[0].input.file_path,
-                          oldString: data.message.content[0].input.old_string,
-                          newString: data.message.content[0].input.new_string,
-                        },
-                      });
-                      break;
-                    case "Read":
-                      await fetchMutation(api.messages.add, {
-                        sessionId: id,
-                        role: "assistant",
-                        content: "",
-                        read: {
-                          filePath: data.message.content[0].input.file_path,
-                        },
-                      });
-                      break;
-                    case "Write":
-                      await fetchMutation(api.messages.add, {
-                        sessionId: id,
-                        role: "assistant",
-                        content: "",
-                        read: {
-                          filePath: data.message.content[0].input.file_path,
-                        },
-                      });
-                    default:
-                      break;
-                  }
-                  break;
-                default:
-                  break;
-              }
-            }
-          },
-        },
       });
 
-      // // Save checkpoint to database
-      // if (checkpointBranch) {
-      //   await fetchMutation(api.messages.add, {
-      //     sessionId: id,
-      //     role: "assistant",
-      //     content: "",
-      //     checkpoint: {
-      //       branch: checkpointBranch,
-      //       patch: patchContent.length > 0 ? patchContent : undefined,
-      //     },
-      //   });
-
-      //   console.log("Checkpoint saved:", checkpointBranch);
-      // }
-
-      return response;
-    });
-
-    await step.run("update session", async () => {
       await fetchMutation(api.sessions.update, {
         id,
-        status: "RUNNING",
+        status: "CUSTOM",
+        statusMessage: "Task completed",
       });
+
+      return response;
     });
 
     return result;
@@ -240,24 +244,7 @@ export const createSession = inngest.createFunction(
 
     let sandboxId: string;
 
-    const config: VibeKitConfig = {
-      agent: {
-        type: "claude",
-        model: {
-          apiKey: process.env.ANTHROPIC_API_KEY!,
-        },
-      },
-      environment: {
-        northflank: {
-          apiKey: process.env.NORTHFLANK_API_KEY!,
-          projectId: process.env.NORTHFLANK_PROJECT_ID!,
-          image: template?.image,
-        },
-      },
-      secrets: template?.secrets,
-    };
-
-    const vibekit = new VibeKit(config);
+    const vibekit = createVibeKitInstance("claude", "northflank", repository, template);
 
     const data = await step.run("get tunnel url", async () => {
       const title = await generateSessionTitle(message);

@@ -1,0 +1,120 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+.env variables are in .env.local
+Make things simple, dont overcomplicate things.
+Reuse existing components if possible.
+Make sure each logicand functionality is Rock Solid!
+If some function or logic is too long or complicated, split into smaller mini functions to make sure it is easy to manage.
+
+## IF changing UI/UX REQUIREMENTS
+- **Responsive**: Mobile-first with Tailwind breakpoints
+- **Modern**: smooth animations, premium feel
+- **Navigation**: No dead ends, always provide back/home options
+- **States**: Loading, error, and empty states for all data
+- **Keep components SMALL**: Max 30 lines per component
+- **Break down large UI**: If component exceeds 30 lines, split into smaller sub-components within same file
+- **Always close JSX tags**: Verify every <div>, <span>, etc. has proper closing tag
+- **One responsibility**: Each component should do ONE thing only
+- **Import React**: Always include import React from 'react' in JSX files
+
+
+# VibeKit App Structure Guide
+
+## 🏗️ Architecture Overview
+**Next.js 15 + Clerk Auth + Convex DB + Stripe + Tailwind CSS**
+
+## 📁 Core Structure
+
+### `/docs/app/` - Main Application
+```
+app/
+├── (app)/                    # Protected app routes
+│   ├── page.tsx             # Home/Projects page
+│   ├── client-page.tsx      # Projects list client component
+│   ├── profile/             # User profile page
+│   ├── billing/             # Stripe billing page  
+│   ├── settings/            # Settings page
+│   └── projects/[id]/       # Project details
+│       └── [agentId]/       # Agent configuration
+├── (auth)/                  # Auth routes (sign-in/up)
+├── (embed)/                 # Embeddable widget routes
+├── api/                     # API routes
+├── layout.tsx               # Root layout with providers
+└── globals.css              # Global styles
+```
+
+## 🔧 Key Components & Patterns
+
+### **Page Pattern**
+```typescript
+// Server component (page.tsx)
+export default async function Page() {
+  const { userId } = await auth();
+  return <ClientPage userId={userId} />;
+}
+
+// Client component (client-page.tsx)
+"use client";
+export default function ClientPage() {
+  const { sidebarOpen } = useSidebar();
+  return (
+    <div className={cn("flex-1 transition-all", 
+      sidebarOpen ? "ml-42" : "ml-14.5")}>
+      {/* Page content */}
+    </div>
+  );
+}
+```
+
+### **Core Files**
+- `config.ts` - Site config & navigation
+- `middleware.ts` - Route protection
+- `components/navbar.tsx` - Sidebar navigation
+- `components/conditional-layout.tsx` - Layout wrapper
+
+## 🗄️ Database (Convex)
+```typescript
+// Main entities
+- organization (Stripe integration)
+- userProfile (user settings)
+- project (user projects)
+- agent (AI agent configs)
+- actionLog (activity tracking)
+```
+
+## 🔐 Auth & Protection
+- **Clerk** for authentication
+- **Middleware** protects `/(projects|profile|billing|settings)(.*)`
+- **Conditional Layout** shows navbar for signed-in users
+
+## 🎨 UI System
+- **Tailwind CSS** + **shadcn/ui** components
+- **Responsive**: `sidebarOpen ? "ml-42" : "ml-14.5"` pattern
+- **Icons**: SVG files in `/public/`
+- **Forms**: `react-hook-form` + `zod` validation
+
+## 📊 State Management
+- **Convex** for server state
+- **React Context** for sidebar state
+- **Clerk** for user state
+
+## 🚀 Key Features
+- Project management with AI agents
+- Stripe billing integration  
+- GitHub OAuth integration
+- Real-time updates via Convex
+- Embeddable widgets
+- Activity logging
+
+## 🛠️ Development Commands
+```bash
+npm run dev        # Development server
+npm run build      # Production build  
+npm run lint       # ESLint checking
+```
+
+This structure follows **mobile-first responsive design** with **component composition** and **server/client separation** patterns.

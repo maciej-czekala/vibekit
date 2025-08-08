@@ -5,6 +5,7 @@ export interface Template {
   repository: string;
   logos: string[];
   image?: string;
+  workingDirectory?: string;
   startCommands: {
     command: string;
     status: "INSTALLING_DEPENDENCIES" | "STARTING_DEV_SERVER";

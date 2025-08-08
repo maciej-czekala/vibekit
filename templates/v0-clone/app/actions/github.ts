@@ -2,6 +2,7 @@
 
 import { Octokit } from "@octokit/rest";
 import { auth } from "@/lib/auth";
+import { configStorage } from "@/lib/config-storage";
 
 export interface Repo {
   id: number;
@@ -20,14 +21,17 @@ export interface Repo {
 export async function listRepos(): Promise<Repo[]> {
   const session = await auth();
 
-  if (!session?.accessToken) {
+  // Use session token if available, otherwise fall back to stored GitHub token
+  const githubToken = session?.accessToken || configStorage.getConfig('github_token');
+
+  if (!githubToken) {
     throw new Error(
-      "No GitHub access token provided. Please authenticate first."
+      "No GitHub access token provided. Please authenticate first or configure GitHub token in settings."
     );
   }
 
   const octokit = new Octokit({
-    auth: session.accessToken,
+    auth: githubToken,
   });
 
   try {
@@ -96,14 +100,17 @@ export async function listRepos(): Promise<Repo[]> {
 export async function getBranches(owner: string, repo: string) {
   const session = await auth();
 
-  if (!session?.accessToken) {
+  // Use session token if available, otherwise fall back to stored GitHub token
+  const githubToken = session?.accessToken || configStorage.getConfig('github_token');
+
+  if (!githubToken) {
     throw new Error(
-      "No GitHub access token provided. Please authenticate first."
+      "No GitHub access token provided. Please authenticate first or configure GitHub token in settings."
     );
   }
 
   const octokit = new Octokit({
-    auth: session.accessToken,
+    auth: githubToken,
   });
 
   try {

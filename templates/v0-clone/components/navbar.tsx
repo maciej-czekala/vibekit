@@ -194,7 +194,10 @@ export default function Navbar() {
                   <Monitor className="mr-2 h-4 w-4" />
                   Sessions
                 </DropdownMenuItem>
-                <DropdownMenuItem className="font-medium">
+                <DropdownMenuItem 
+                  className="font-medium"
+                  onClick={() => router.push("/settings")}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
