@@ -134,7 +134,7 @@ export function EnvironmentConfigSection({ onExpand }: EnvironmentConfigSectionP
   // Expose expand function via useEffect for external access
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).expandEnvironmentConfigSection = expandSection;
+      (window as Window & typeof globalThis & { expandEnvironmentConfigSection: () => void }).expandEnvironmentConfigSection = expandSection;
     }
   }, [isOpen, expandSection]);
 

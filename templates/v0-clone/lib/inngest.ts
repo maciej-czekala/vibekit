@@ -157,12 +157,10 @@ export const runAgent = inngest.createFunction(
   { event: "vibe0/run.agent" },
   async ({ event, step }) => {
     const {
-      sessionId: _sessionId,
       id,
       message,
       template,
       repository,
-      token: _token,
     }: {
       sessionId: string;
       id: string;
@@ -172,28 +170,11 @@ export const runAgent = inngest.createFunction(
       token: string;
     } = event.data;
 
-    const config = {
-      agent: {
-        type: "claude" as const,
-        provider: "anthropic" as const,
-        apiKey: configStorage.getConfig('claude') || process.env.ANTHROPIC_API_KEY!,
-        model: "claude-3-5-sonnet-20241022",
-      },
-      environment: {
-        northflank: {
-          apiKey: configStorage.getConfig('northflank_api_key') || process.env.NORTHFLANK_API_KEY!,
-          projectId: configStorage.getConfig('northflank_project_id') || process.env.NORTHFLANK_PROJECT_ID!,
-          image: template?.image,
-        },
-      },
-      secrets: template?.secrets,
-    };
-
     const result = await step.run("generate code", async () => {
       const vibekit = createVibeKitInstance("claude", "northflank", repository, template);
 
       await fetchMutation(api.sessions.update, {
-        id,
+        id: id as Id<"sessions">,
         status: "CUSTOM",
         statusMessage: "Working on task",
       });
@@ -211,7 +192,7 @@ export const runAgent = inngest.createFunction(
       });
 
       await fetchMutation(api.sessions.update, {
-        id,
+        id: id as Id<"sessions">,
         status: "CUSTOM",
         statusMessage: "Task completed",
       });
@@ -287,11 +268,7 @@ export const createSession = inngest.createFunction(
           const { sandboxId: _sandboxId } = await vibekit.executeCommand(
             command,
             {
-              callbacks: {
-                onUpdate(message) {
-                  console.log(message);
-                },
-              },
+              background: true,
             }
           );
 
@@ -311,12 +288,7 @@ export const createSession = inngest.createFunction(
           });
 
           await vibekit.executeCommand(command.command, {
-            background: command.background,
-            callbacks: {
-              onUpdate(message) {
-                console.log(message);
-              },
-            },
+            background: command.background, 
           });
         }
 
@@ -339,11 +311,7 @@ export const createSession = inngest.createFunction(
         });
 
         await vibekit.executeCommand("npm i", {
-          callbacks: {
-            onUpdate(message) {
-              console.log(message);
-            },
-          },
+          background: true,
         });
 
         await fetchMutation(api.sessions.update, {
@@ -353,11 +321,6 @@ export const createSession = inngest.createFunction(
 
         await vibekit.executeCommand("npm run dev", {
           background: true,
-          callbacks: {
-            onUpdate(message) {
-              console.log(message);
-            },
-          },
         });
 
         await fetchMutation(api.sessions.update, {

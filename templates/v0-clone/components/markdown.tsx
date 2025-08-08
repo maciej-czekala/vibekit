@@ -22,6 +22,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
 
 type CodeComponentProps = React.ComponentPropsWithoutRef<"code"> & {
   inline?: boolean;
@@ -223,13 +224,13 @@ const components: Partial<Components> = {
       {children}
     </h6>
   ),
-  img: ({ alt, src, title, ...props }) => (
-    <img
+  img: ({ alt, src }) => (
+    <Image
       className="max-w-full h-auto my-2 rounded"
-      alt={alt}
-      src={src}
-      title={title}
-      {...props}
+      alt={alt || ""}
+      src={src as string}
+      width={800}
+      height={600}
     />
   ),
   blockquote: ({ children, ...props }) => (

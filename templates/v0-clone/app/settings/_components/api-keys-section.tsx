@@ -135,7 +135,7 @@ export function ApiKeysSection({ onExpand }: ApiKeysSectionProps) {
   // Expose expand function via useEffect for external access
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).expandApiKeysSection = expandSection;
+      (window as Window & typeof globalThis & { expandApiKeysSection: () => void }).expandApiKeysSection = expandSection;
     }
   }, [isOpen, expandSection]);
 

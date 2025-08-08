@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 interface UseUrlAvailabilityOptions {
   url?: string;
@@ -17,7 +17,7 @@ export function useUrlAvailability({
   const [isChecking, setIsChecking] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const checkUrlWithIframe = (urlToCheck: string) => {
+  const checkUrlWithIframe = useCallback((urlToCheck: string) => {
     if (!urlToCheck) return;
 
     setIsChecking(true);
@@ -83,7 +83,7 @@ export function useUrlAvailability({
     testIframe.src = urlToCheck;
 
     document.body.appendChild(testIframe);
-  };
+  }, [retryInterval, timeout, isUrlReady]);
 
   useEffect(() => {
     if (url && enabled) {
@@ -100,7 +100,7 @@ export function useUrlAvailability({
         timeoutRef.current = null;
       }
     };
-  }, [url, enabled, retryInterval, timeout]);
+  }, [url, enabled, retryInterval, timeout, checkUrlWithIframe]);
 
   return {
     isUrlReady,

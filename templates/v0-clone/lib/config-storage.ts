@@ -417,7 +417,14 @@ export function testConfigStorage() {
 export function testAllConfigKeys() {
   console.log('🧪 Testing ALL VibeKit Configuration Keys...');
   
-  const results: Record<string, any> = {};
+  const results: Record<string, {
+    saveResult: boolean;
+    retrievedValue: string | null;
+    source: 'localStorage' | 'environment' | 'none';
+    isSet: boolean;
+    removeResult: boolean;
+    config: ConfigItem;
+  }> = {};
   
   // Test all AI agent configurations
   console.log('\n🤖 Testing AI Agent Configurations:');

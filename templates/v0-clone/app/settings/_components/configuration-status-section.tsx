@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle, AlertCircle, Settings, ArrowRight } from "lucide-react";
@@ -69,10 +68,10 @@ export function ConfigurationStatusSection() {
 
   const scrollToSectionAndExpand = (sectionId: string) => {
     // First expand the section if needed
-    if (sectionId === 'api-keys-section' && typeof window !== 'undefined' && (window as any).expandApiKeysSection) {
-      (window as any).expandApiKeysSection();
-    } else if (sectionId === 'environment-config-section' && typeof window !== 'undefined' && (window as any).expandEnvironmentConfigSection) {
-      (window as any).expandEnvironmentConfigSection();
+    if (sectionId === 'api-keys-section' && typeof window !== 'undefined' && (window as Window & typeof globalThis & { expandApiKeysSection: () => void }).expandApiKeysSection) {
+      (window as Window & typeof globalThis & { expandApiKeysSection: () => void }).expandApiKeysSection();
+    } else if (sectionId === 'environment-config-section' && typeof window !== 'undefined' && (window as Window & typeof globalThis & { expandEnvironmentConfigSection: () => void }).expandEnvironmentConfigSection) {
+      (window as Window & typeof globalThis & { expandEnvironmentConfigSection: () => void }).expandEnvironmentConfigSection();
     }
     
     // Then scroll to the section

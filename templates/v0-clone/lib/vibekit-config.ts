@@ -130,21 +130,21 @@ export function getGithubConfig() {
 /**
  * Get sandbox provider configuration
  */
-export function getSandboxConfig(provider: EnvironmentId) {
+export function getSandboxConfig(provider: 'e2b_api_key' | 'daytona_api_key' | 'northflank_api_key') {
   const config = getVibeKitConfig();
   
   switch (provider) {
-    case 'e2b':
+    case 'e2b_api_key':
       return {
         apiKey: config.environment.e2bApiKey,
         templateId: 'vibekit-claude',
       };
-    case 'daytona':
+    case 'daytona_api_key':
       return {
         apiKey: config.environment.daytonaApiKey,
         image: 'superagentai/vibekit-claude:1.0',
       };
-    case 'northflank':
+    case 'northflank_api_key':
       return {
         apiKey: config.environment.northflankApiKey,
         projectId: config.environment.northflankProjectId,
@@ -159,8 +159,7 @@ export function getSandboxConfig(provider: EnvironmentId) {
  * Initialize VibeKit with stored configuration using new fluent API
  * Example usage for integrating with VibeKit SDK
  */
-export function createVibeKitInstance(agentType: AgentId = 'claude', sandboxProvider: EnvironmentId = 'northflank') {
-  const config = getVibeKitConfig();
+export function createVibeKitInstance(agentType: AgentId = 'claude', sandboxProvider: 'e2b_api_key' | 'daytona_api_key' | 'northflank_api_key' = 'northflank_api_key') {
   const agentConfig = getAgentConfig(agentType);
   const sandboxConfig = getSandboxConfig(sandboxProvider);
   const githubConfig = getGithubConfig();
